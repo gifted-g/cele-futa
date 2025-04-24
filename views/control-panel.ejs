@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="js/jquery-3.6.0.min.js"></script>
+
+    <link rel="stylesheet" href="css/select2.min.css" />
+    <script src="js/select2.min.js"></script>
+
+    <title>Control Panel</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+        margin: 20px;
+      }
+
+      h1 {
+        color: #333;
+      }
+
+      .hymn-buttons {
+        display: flex;
+        flex-direction: column; /* Buttons on new lines */
+        gap: 10px; /* Spacing between buttons */
+        margin-top: 20px;
+      }
+
+      .hymn-buttons button {
+        padding: 10px 20px;
+        background-color: #fff; /* White background */
+        color: #007acc; /* Blue text color */
+        border: 1px solid #007acc; /* Blue border */
+        cursor: pointer;
+        width: 100%; /* Full width of the container */
+        display: block; /* Display as block-level elements for centering */
+        margin: 0 auto; /* Auto margin to center horizontally */
+      }
+
+      .highlight {
+        background-color: #007acc !important;
+        color: #fff !important;
+      }
+
+      /* Style for the dropdown container */
+      #hymnDropdown {
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        background-color: #f8f8f8;
+        width: 200px;
+        font-size: 16px;
+        color: #333;
+      }
+
+      /* Style for dropdown options */
+      #hymnDropdown option {
+        font-size: 16px;
+        color: #333;
+      }
+    </style>
+  </head>
+  <body>
+    <div>Screen IP: <%= ipAddress %></div>
+
+    <h1>
+      Control Panel
+      <span>
+        |||||
+        <a href="/control-bible">Bible</a>
+      </span>
+      <span>
+        |||||
+        <a href="/add">Add Hymns</a>
+      </span>
+    </h1>
+    <div>
+      <label for="hymnDropdown">Select a Hymn:</label>
+      <select id="hymnDropdown">
+        <option>Select a hymn</option>
+      </select>
+    </div>
+
+    <div class="hymn-buttons">
+      <!-- Hymn buttons will be displayed here -->
+    </div>
+    <script src="js/socket.io.js"></script>
+    <script>
+      let hymnsObject = {};
+
+      function populateHymnDropdown() {
+        const hymnDropdown = document.getElementById("hymnDropdown");
+
+        fetch("/get-lyrics")
+          .then((res) => res.json())
+          .then((res) => {
+            const { lyrics } = res;
+            const hymnsObjectLo = lyrics.reduce(
+              (accumulator, currentValue, index) => {
+                const title = currentValue?.language
+                  ? `${currentValue.title}.${currentValue.language}`
+                  : currentValue.title;
+
+                accumulator[title] = currentValue;
+                return accumulator;
+              },
+              {}
+            );
+
+            Object.keys(hymnsObjectLo).forEach(function (title) {
+              const option = document.createElement("option");
+              option.value = title;
+              option.text = title;
+              hymnDropdown.appendChild(option);
+            });
+
+            hymnsObject = hymnsObjectLo;
+          });
+      }
+
+      // Call the function to populate the dropdown
+      populateHymnDropdown();
+
+      document.addEventListener("DOMContentLoaded", function () {
+        $("#hymnDropdown").select2();
+
+        const hymnDropdown = document.getElementById("hymnDropdown");
+        const hymnButtonsDiv = document.querySelector(".hymn-buttons");
+        const socket = io();
+
+        // Function to display hymn content as buttons
+        function displayHymnContentAsButtons() {
+          const selectedHymnTitle = hymnDropdown.value;
+          const selectedHymn = hymnsObject[selectedHymnTitle];
+
+          // Clear any existing buttons
+          hymnButtonsDiv.innerHTML = "";
+
+          if (selectedHymn) {
+            const contentArray = selectedHymn.content;
+
+            // Create buttons for each line of the hymn content
+            contentArray.forEach((line, index) => {
+              const button = document.createElement("button");
+              button.textContent = line;
+
+              if (line.match(/^[\s]*$/)) {
+                return;
+              }
+
+              button.addEventListener("click", function () {
+                // Send the content using socket.io when the button is clicked
+                const contentToSend = { title: selectedHymnTitle, line: line };
+
+                const highlightedButtons =
+                  document.querySelectorAll(".highlight");
+
+                for (let i = 0; i < highlightedButtons.length; i++) {
+                  highlightedButtons[i].classList.remove("highlight");
+                }
+
+                button.classList.add("highlight");
+
+                socket.emit("hymn-content", contentToSend);
+              });
+
+              hymnButtonsDiv.appendChild(button);
+            });
+          }
+        }
+
+        // Add an event listener for the dropdown
+        hymnDropdown.addEventListener("change", displayHymnContentAsButtons);
+        $("#hymnDropdown").on("change", displayHymnContentAsButtons);
+      });
+    </script>
+  </body>
+</html>

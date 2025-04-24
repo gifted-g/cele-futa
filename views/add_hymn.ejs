@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Add Hymn</title>
+  </head>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f2f2f2;
+      text-align: center;
+    }
+
+    h1 {
+      color: #007acc;
+    }
+
+    form {
+      background-color: #ffffff;
+      border: 1px solid #dcdcdc;
+      border-radius: 5px;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    label {
+      display: block;
+      margin: 10px 0;
+      font-weight: bold;
+    }
+
+    input[type="text"],
+    textarea {
+      width: 90%;
+      padding: 10px;
+      margin: 5px 0;
+      border: 1px solid #dcdcdc;
+      border-radius: 3px;
+      outline: none;
+    }
+
+    button {
+      background-color: #007acc;
+      color: #fff;
+      border: none;
+      border-radius: 3px;
+      padding: 10px 20px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      margin-top: 10px;
+    }
+
+    button:hover {
+      background-color: #005eaa;
+    }
+
+    a {
+      display: block;
+      margin-top: 20px;
+      text-decoration: none;
+      color: #007acc;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+  </style>
+  <body>
+    <div>Screen IP: <%= ipAddress %></div>
+
+    <div>
+      <span>
+        <a href="/control-panel">Hymn List</a>
+      </span>
+      <span>
+        <a href="/control-bible">Bible</a>
+      </span>
+    </div>
+
+    <h1>Add a New Hymn</h1>
+
+    <form id="addHymnForm" method="POST">
+      <label for="title">Title:</label>
+      <input type="text" id="title" name="title" required />
+
+      <label for="content">Content:</label>
+      <textarea id="content" name="content" required></textarea>
+
+      <button type="submit">Add Hymn</button>
+    </form>
+
+    <a href="/control-panel">Back to Hymn List</a>
+
+    <script>
+      // Function to add a hymn to the list
+      function addHymn(title, content) {
+        // Split the content into an array using new lines
+        const contentArray = content.split("\n").map((t) => t.trim());
+
+        // Create a new hymn object
+        const newHymn = {
+          title: title,
+          content: contentArray,
+        };
+
+        // Retrieve the existing hymns from localStorage or initialize as an empty object
+        let hymnsObject = JSON.parse(localStorage.getItem("hymns")) || {};
+
+        return fetch("/add-lyrics", {
+          method: "POST",
+          body: JSON.stringify(newHymn),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+      }
+
+      // Add event listener for form submission
+      document
+        .getElementById("addHymnForm")
+        .addEventListener("submit", function (event) {
+          event.preventDefault();
+          const title = document.getElementById("title").value;
+          const content = document.getElementById("content").value;
+
+          if (title && content) {
+            addHymn(title, content).then(() => {
+              document.getElementById("title").value = "";
+              document.getElementById("content").value = "";
+
+              alert("Hymn added successfully!");
+            });
+          }
+        });
+    </script>
+  </body>
+</html>

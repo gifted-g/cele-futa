@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="js/socket.io.js"></script>
+    <script src="js/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="css/projector.css" />
+    <title>Projector</title>
+  </head>
+  <body>
+    <div class="body" id="body">
+      <div id="data" class="text"></div>
+      <div onclick="openFullscreen()" id="full-screen" class="text"></div>
+    </div>
+    <script>
+      const dataDiv = $("#data");
+
+      const socket = io();
+
+      socket.on("connect", () => {
+        console.log("Connected to server");
+      });
+
+      socket.on("lyrics", function (data) {
+        console.log(data);
+        dataDiv.html(data.line);
+        adjustTextSize(data.line);
+      });
+
+      socket.on("scripture", function (data) {
+        dataDiv.html(
+          data.scripture +
+            "<br>" +
+            data.quote +
+            " " +
+            data.version.toUpperCase()
+        );
+
+        adjustTextSize(
+          data.scripture +
+            "<br>" +
+            data.quote +
+            " " +
+            data.version.toUpperCase()
+        );
+      });
+
+      function adjustTextSize(text) {
+        const dataDiv = $("#data");
+        const h = window.innerHeight;
+        const divScrollHeight = dataDiv[0].scrollHeight;
+
+        if (
+          text !== "reset-font-.-." &&
+          text !== "just" &&
+          divScrollHeight <= 0.7 * h
+        ) {
+          dataDiv.css("font-size", "12.5vw");
+          adjustTextSize("just");
+        }
+
+        if (divScrollHeight > 0.7 * h) {
+          const currentSize = parseInt(dataDiv.css("font-size"));
+          dataDiv.css("font-size", currentSize - 2);
+          adjustTextSize("reset-font-.-.");
+        }
+      }
+
+      /* Display in fullscreen mode */
+      function openFullscreen() {
+        const elem = document.getElementById("body");
+        if (elem.requestFullscreen) {
+          elem.requestFullscreen();
+        } else if (elem.webkitRequestFullscreen) {
+          /* Safari */
+          elem.webkitRequestFullscreen();
+        } else if (elem.msRequestFullscreen) {
+          /* IE11 */
+          elem.msRequestFullscreen();
+        }
+      }
+    </script>
+  </body>
+</html>
